@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import cml.data_v1 as cmldata
 
@@ -20,7 +21,7 @@ db_cursor = conn.get_cursor()
 
 
 GET_DATABASES_QUERY = "show databases"
-db_cursor.execute(EXAMPLE_SQL_QUERY)
+db_cursor.execute(GET_DATABASES_QUERY)
 
 databases = []
 for row in db_cursor:
@@ -56,3 +57,24 @@ for t in tables:
     table_locs[t] = {"location": NOT_FOUND}
 
 pprint(table_locs, sort_dicts=True)
+
+def get_size_for_location(location: str) -> int:
+  """
+  Use `hdfs` subprocess to get size in bytes of given location.
+  
+  :param str location: The location to pass to `hdfs`; can use `s3a://` scheme.
+  :return: The size in bytes
+  :raises ValueError: if the location is not found in the hdfs stdout
+  :raises ValueError: if the output line does not begin with size in bytes as expected
+  """
+  completed_process = subprocess.run(
+    ["hdfs", "dfs", "-du", "-s", location], capture_output=True, text=True)
+  
+  # Check truthiness to remove empty lines
+  lines = list(filter(lambda x: x, completed_process.stdout.split("\n")))
+  
+  for line in lines:
+    if line.endswith(location):
+      return int(line.split(" ")[0])
+
+  raise ValueError("Location size not found")
