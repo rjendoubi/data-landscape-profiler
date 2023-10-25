@@ -89,10 +89,13 @@ class DataLandscapeProfiler:
         print(f"Got {len(tables)} tables")
         for t in tables:
             try:
+                loc = self.get_location_for_table(t)
+                size = self.get_size_for_location(loc)
                 table_locs[t] = {
-                    "size": self.get_size_for_location(
-                        self.get_location_for_table(t))}
+                    "location": loc,
+                    "size": size}
             except Exception as ex:
-                print(f"ERROR for table {t}: {ex}")
+                print(f"{type(ex)} for table {t}:"
+                     f" {ex} (line {ex.__traceback__.tb_lineno})")
 
         return table_locs
