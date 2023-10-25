@@ -1,1 +1,1 @@
-# hms-table-size-scanner
+# Data Landscape Profiler
