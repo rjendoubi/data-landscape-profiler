@@ -1,6 +1,7 @@
+import re
 import subprocess
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 NOT_FOUND = "NOT FOUND"
@@ -11,7 +12,7 @@ class DataLandscapeProfiler:
         pass
 
     GET_DATABASES_QUERY = "show databases"
-    def get_databases(self) -> List[str]:
+    def get_databases(self, db_filter: Optional[str]=None) -> List[str]:
         db_cursor = self.db_cursor
         db_cursor.execute(self.GET_DATABASES_QUERY)
 
@@ -20,6 +21,10 @@ class DataLandscapeProfiler:
             if row[0] in ('sys', 'information_schema'):
                 continue
             databases.append(row[0])
+
+        if db_filter:
+            pat = re.compile(db_filter)
+            databases = list(filter(lambda x: pat.match(x), databases))
 
         return databases
 
@@ -81,9 +86,9 @@ class DataLandscapeProfiler:
 
         raise ValueError("Location size not found")
 
-    def run(self) -> Dict:
+    def run(self, db_filter: Optional[str]=None) -> Dict:
         table_locs = {}
-        dbs = self.get_databases()
+        dbs = self.get_databases(db_filter=db_filter)
         tables = self.get_tables(dbs)
 
         print(f"Got {len(tables)} tables")
