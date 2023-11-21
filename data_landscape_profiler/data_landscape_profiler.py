@@ -53,12 +53,12 @@ class DataLandscapeProfiler:
         """
         db_cursor = self.db_cursor
 
-        db_cursor.execute(self.DESCRIBE_QUERY.format(t))
+        db_cursor.execute(self.DESCRIBE_QUERY.format(table))
         for row in db_cursor:
-            print(row)
             if row[0].startswith('Location:'):
                 return row[1]
-            raise ValueError("Location not found")
+
+        raise ValueError("Location not found")
 
     def get_size_for_location(location: str) -> int:
         """
