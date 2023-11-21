@@ -1,5 +1,7 @@
+import csv
 import os
 
+from datetime import datetime
 from pprint import pprint
 
 import cml.data_v1 as cmldata
@@ -22,3 +24,9 @@ db_cursor = conn.get_cursor()
 dlp = DataLandscapeProfiler(db_cursor)
 table_locs = dlp.run()
 pprint(table_locs, sort_dicts=True)
+
+dt_str = datetime.now().strftime('%Y%m%d-%H%M%S')
+with open(f"{dt_str}.csv", 'w') as csvfile:
+    writer = csv.writer(csvfile)
+    for key in sorted(table_locs):
+        writer.writerow([key, table_locs[key]["location"],table_locs[key]["size"]])
