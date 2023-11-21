@@ -65,7 +65,7 @@ class DataLandscapeProfiler:
 
         raise ValueError("Location not found")
 
-    def get_size_for_location(location: str) -> int:
+    def get_size_for_location(self, location: str) -> int:
         """
         Use `hdfs` subprocess to get size in bytes of given location.
 
