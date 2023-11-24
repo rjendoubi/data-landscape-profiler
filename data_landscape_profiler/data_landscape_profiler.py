@@ -88,10 +88,13 @@ class DataLandscapeProfiler:
 
     def run(self, db_filter: Optional[str]=None) -> Dict:
         table_locs = {}
-        dbs = self.get_databases(db_filter=db_filter)
-        tables = self.get_tables(dbs)
 
+        dbs = self.get_databases(db_filter=db_filter)
+        print(f"Got {len(dbs)} databases")
+
+        tables = self.get_tables(dbs)
         print(f"Got {len(tables)} tables")
+
         for t in tables:
             try:
                 loc = self.get_location_for_table(t)
