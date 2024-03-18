@@ -1,6 +1,8 @@
+import csv
 import re
 import subprocess
 
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from impala.error import HiveServer2Error
@@ -94,10 +96,13 @@ class DataLandscapeProfiler:
             if line.endswith(location):
                 return int(line.split(" ")[0])
 
-        raise ValueError(f"Location size not found; got lines\n{lines}")
+        raise ValueError(f"Data size not found for location '{location}'; got lines\n{lines}")
 
-    def run(self, db_filter: Optional[str]=None, max_errors=0) -> Dict:
+    def run(self, run_stamp="", db_filter: Optional[str]=None, max_errors=0) -> Dict:
         table_locs = {}
+
+        if run_stamp == "":
+            run_stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
 
         dbs = self.get_databases(db_filter=db_filter)
         print(f"Got {len(dbs)} databases")
@@ -105,32 +110,42 @@ class DataLandscapeProfiler:
         tables = self.get_tables(dbs)
         print(f"Got {len(tables)} tables")
 
-        error_count = 0
-        for t in tables:
-            try:
-                loc = self.get_location_for_table(t)
-                size = self.get_size_for_location(loc)
-                table_locs[t] = {
-                    "location": loc,
-                    "size": size}
-                print(f"OK: {table_locs[t]}")
-            except HiveServer2Error as ex:
-                # Get last in chain
-                while ex.__cause__:
-                    ex = ex.__cause__
-                table_locs[t] = {
-                    "location": f"{ex}",
-                    "size": "N/A"}
-                print(f"ERR: {table_locs[t]}")
-            except TableTypeError as ex:
-                print(f"OK: {ex}")
-            except Exception as ex:
-                print(f"{type(ex)} for table {t}:"
-                     f" {ex} (line {ex.__traceback__.tb_lineno})")
+        with open(f"{run_stamp}.csv", 'w') as csvfile:
+            writer = csv.writer(csvfile)
 
-                error_count += 1
-                if max_errors > 0 and error_count >= max_errors:
-                    print(f"Encountered {max_errors} errors, quitting...")
-                    raise(Exception("Too many errors"))
+            error_count = 0
+            total = len(tables)
+            current = 0
+
+            for t in tables:
+                current += 1
+                try:
+                    loc = self.get_location_for_table(t)
+                    size = self.get_size_for_location(loc)
+                    table_locs[t] = {
+                        "location": loc,
+                        "size": size}
+                    print(f"OK [{current}/{total}]: {table_locs[t]}")
+                    writer.writerow([t, loc, size])
+
+                except HiveServer2Error as ex:
+                    # Get last in chain
+                    while ex.__cause__:
+                        ex = ex.__cause__
+                    table_locs[t] = {
+                        "location": f"{ex}",
+                        "size": "N/A"}
+                    print(f"ERR [{current}/{total}]: {table_locs[t]}")
+                    writer.writerow([t, f"{ex}", "N/A"])
+                except TableTypeError as ex:
+                    print(f"OK [{current}/{total}]: {ex}")
+                except Exception as ex:
+                    print(f"{type(ex)} for table {t} [{current}/{total}]:"
+                        f" {ex} (line {ex.__traceback__.tb_lineno})")
+
+                    error_count += 1
+                    if max_errors > 0 and error_count >= max_errors:
+                        print(f"Encountered {max_errors} errors, quitting...")
+                        raise(Exception("Too many errors"))
 
         return table_locs
