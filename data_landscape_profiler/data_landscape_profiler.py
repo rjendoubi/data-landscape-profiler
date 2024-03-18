@@ -6,6 +6,11 @@ from typing import Dict, List, Optional
 
 NOT_FOUND = "NOT FOUND"
 
+
+class TableTypeError(ValueError):
+    pass
+
+
 class DataLandscapeProfiler:
     def __init__(self, db_cursor) -> None:
         self.db_cursor = db_cursor
@@ -58,12 +63,16 @@ class DataLandscapeProfiler:
         """
         db_cursor = self.db_cursor
 
+        lines = []
         db_cursor.execute(self.DESCRIBE_QUERY.format(table))
         for row in db_cursor:
             if row[0].startswith('Location:'):
                 return row[1]
+            if row[0].startswith('Table Type:') and row[1].startswith('VIRTUAL_VIEW'):
+                raise(TableTypeError(f"{table} is a VIRTUAL_VIEW"))
+            lines.append(row)
 
-        raise ValueError("Location not found")
+        raise ValueError(f"Location not found; got lines:\n{lines}")
 
     def get_size_for_location(self, location: str) -> int:
         """
@@ -84,9 +93,9 @@ class DataLandscapeProfiler:
             if line.endswith(location):
                 return int(line.split(" ")[0])
 
-        raise ValueError("Location size not found")
+        raise ValueError(f"Location size not found; got lines\n{lines}")
 
-    def run(self, db_filter: Optional[str]=None) -> Dict:
+    def run(self, db_filter: Optional[str]=None, max_errors=0) -> Dict:
         table_locs = {}
 
         dbs = self.get_databases(db_filter=db_filter)
@@ -95,6 +104,7 @@ class DataLandscapeProfiler:
         tables = self.get_tables(dbs)
         print(f"Got {len(tables)} tables")
 
+        error_count = 0
         for t in tables:
             try:
                 loc = self.get_location_for_table(t)
@@ -102,8 +112,16 @@ class DataLandscapeProfiler:
                 table_locs[t] = {
                     "location": loc,
                     "size": size}
+                print(f"OK: {table_locs[t]}")
+            except TableTypeError as ex:
+                print(f"OK: {ex}")
             except Exception as ex:
                 print(f"{type(ex)} for table {t}:"
                      f" {ex} (line {ex.__traceback__.tb_lineno})")
+
+                error_count += 1
+                if max_errors > 0 and error_count >= max_errors:
+                    print(f"Encountered {max_errors} errors, quitting...")
+                    raise(Exception("Too many errors"))
 
         return table_locs
