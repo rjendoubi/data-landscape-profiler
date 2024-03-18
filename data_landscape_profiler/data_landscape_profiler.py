@@ -3,6 +3,7 @@ import subprocess
 
 from typing import Dict, List, Optional
 
+from impala.error import HiveServer2Error
 
 NOT_FOUND = "NOT FOUND"
 
@@ -113,6 +114,14 @@ class DataLandscapeProfiler:
                     "location": loc,
                     "size": size}
                 print(f"OK: {table_locs[t]}")
+            except HiveServer2Error as ex:
+                # Get last in chain
+                while ex.__cause__:
+                    ex = ex.__cause__
+                table_locs[t] = {
+                    "location": f"{ex}",
+                    "size": "N/A"}
+                print(f"ERR: {table_locs[t]}")
             except TableTypeError as ex:
                 print(f"OK: {ex}")
             except Exception as ex:
