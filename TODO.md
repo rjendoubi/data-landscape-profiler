@@ -1,6 +1,8 @@
 # Data Landscape Profiler
 
 ### Todo
+- [ ] Don't assume CML environment
+- [ ] Save all DESCRIBE output
 - [ ] Print progress etc during running
 - [ ] Use proper logging methods for printing output
 - [ ] Take args, to run as CML jobs
