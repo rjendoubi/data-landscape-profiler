@@ -1,7 +1,6 @@
 # Data Landscape Profiler
 
 ### Todo
-- [ ] Save all DESCRIBE output
 - [ ] Print progress etc during running
 - [ ] Use proper logging methods for printing output
 - [ ] Take args, to run as CML jobs
@@ -11,5 +10,6 @@
 - [ ] Pass run_stamp to DLP and write log / metadata file alongside csv
 
 ### Done
+- [x] Save all DESCRIBE output
 - [x] Don't assume CML environment
 - [x] Pass writable to DLP module, to get incremental output
